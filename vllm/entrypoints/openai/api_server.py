@@ -6,12 +6,15 @@ import os
 import re
 import signal
 import socket
+import base64
+import json
 import tempfile
 import uuid
 from argparse import Namespace
 from contextlib import asynccontextmanager
 from functools import partial
 from http import HTTPStatus
+from typing import AsyncIterator, Optional, Set, Tuple, Dict, List, Mapping
 from typing import AsyncIterator, Optional, Set, Tuple, Dict, List, Mapping
 
 import uvloop
@@ -24,6 +27,7 @@ from starlette.routing import Mount
 from typing_extensions import assert_never
 
 import vllm.envs as envs
+import vllm.entrypoints.openai.orca_load_report_pb2 as orca_load_report_pb2
 from vllm.config import ModelConfig
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.engine.multiprocessing.client import MQLLMEngineClient
@@ -370,6 +374,8 @@ async def create_completion(request: CompletionRequest, raw_request: Request):
         return JSONResponse(content=generator.model_dump(),
                             status_code=generator.code)
     elif isinstance(generator, CompletionResponse):
+        header = metrics_header(generator.metrics)
+        return JSONResponse(content=generator.model_dump(), headers= header)
         header = metrics_header(generator.metrics)
         return JSONResponse(content=generator.model_dump(), headers= header)
 
